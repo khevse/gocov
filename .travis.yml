@@ -1,1 +1,48 @@
 language: go
+
+go:
+- 1.x
+
+env:
+  global:
+    - SOURCE_REPO="github.com/axw/gocov"
+    - TRAVIS_TAG="v1.0.$TRAVIS_BUILD_NUMBER-$(date +'%Y%m%d%H%M%S')-$(git log --format=%h -1)"
+
+jobs:
+  include:
+  # --------------------------------------------
+  - stage: test
+    # skip_cleanup: true
+    script:
+      - go test -v ./... -count=1
+    on:
+      all_branches: true
+  - stage: build+push:latest
+    if:
+      tag IS NOT present
+    before_deploy:
+      # Set up git user name and tag this commit
+      - git config --local user.name "khevse"
+      - git config --local user.email "khevse@gmail.com"
+      # build
+      - mkdir -p $GOPATH/src/$SOURCE_REPO
+      - cp -r ./* $GOPATH/src/$SOURCE_REPO/
+      - (cd $GOPATH/src/$SOURCE_REPO/gocov; go build -v -o gocov)
+    on:
+      all_branches: true
+
+before_deploy:
+  - git config --local user.name "khevse"
+  - git config --local user.email "khevse@gmail.com"
+  # Set up git user name and tag this commit
+  - mkdir -p $GOPATH/src/$SOURCE_REPO
+  - cp -r ./* $GOPATH/src/$SOURCE_REPO/
+  - (cd $GOPATH/src/$SOURCE_REPO/gocov/; go build -v -o gocov)
+
+deploy:
+  provider: releases
+  api_key: "$API_KEY"
+  file: "$GOPATH/src/$SOURCE_REPO/gocov/gocov"
+  skip_cleanup: true
+  on:
+    all_branches: true
